@@ -1,0 +1,77 @@
+<!-- index.html -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teachable Machine Pose Model with Firebase</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/pose@0.8/dist/teachablemachine-pose.min.js"></script>
+</head>
+<body>
+    <div>Teachable Machine Pose Model</div>
+    <button type="button" onclick="init()">Start</button>
+    <div><canvas id="canvas"></canvas></div>
+    <div id="label-container"></div>
+    <div id="counting">0</div>
+
+    <script>
+        let webcam, ctx, labelContainer, maxPredictions;
+
+        async function init() {
+            const size = 200;
+            const flip = true;
+            webcam = new tmPose.Webcam(size, size, flip);
+            await webcam.setup();
+            await webcam.play();
+
+            const canvas = document.getElementById("canvas");
+            canvas.width = size;
+            canvas.height = size;
+            ctx = canvas.getContext("2d");
+            labelContainer = document.getElementById("label-container");
+            for (let i = 0; i < maxPredictions; i++) {
+                labelContainer.appendChild(document.createElement("div"));
+            }
+            labelContainer.appendChild(document.createElement("div"));
+
+            // 루프 시작
+            loop();
+        }
+
+        async function loop() {
+            webcam.update();
+            await predict();
+            window.requestAnimationFrame(loop);
+        }
+
+        async function predict() {
+            const imageData = webcam.canvas.toDataURL('image/jpeg'); // 웹캠 이미지 데이터를 Base64로 인코딩
+
+            // 서버로 웹캠 이미지 데이터 전송 및 예측 결과 받아오기
+            const response = await fetch('http://10.200.43.98:3000/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ imageData: imageData })
+            });
+
+            if (response.ok) {
+                const result = await response.json();
+                const pose = result.pose;
+                const predictions = result.predictions;
+
+                // 여기에서 pose와 predictions를 사용하여 필요한 동작 처리
+                // 예: labelContainer에 결과 표시, counting 업데이트 등
+            } else {
+                console.error('Failed to fetch predictions:', response.statusText);
+            }
+        }
+
+        // init 함수 호출
+        init();
+    </script>
+</body>
+</html>
